@@ -1,13 +1,15 @@
 from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnableLambda, RunnableSequence
-from langchain_openai import ChatOpenAI
+from langchain_ollama import OllamaLLM
+
 
 # Load environment variables from .env
 load_dotenv()
 
-# Create a ChatOpenAI model
-model = ChatOpenAI(model="gpt-4")
+# Create a Mistral model
+model = OllamaLLM(model="mistral")
+
 
 # Define prompt templates
 prompt_template = ChatPromptTemplate.from_messages(
@@ -19,8 +21,8 @@ prompt_template = ChatPromptTemplate.from_messages(
 
 # Create individual runnables (steps in the chain)
 format_prompt = RunnableLambda(lambda x: prompt_template.format_prompt(**x))
-invoke_model = RunnableLambda(lambda x: model.invoke(x.to_messages()))
-parse_output = RunnableLambda(lambda x: x.content)
+invoke_model = RunnableLambda(lambda x: model.invoke(x.to_messages())) # type: ignore
+parse_output = RunnableLambda(lambda x: x)
 
 # Create the RunnableSequence (equivalent to the LCEL chain)
 chain = RunnableSequence(first=format_prompt, middle=[invoke_model], last=parse_output)
