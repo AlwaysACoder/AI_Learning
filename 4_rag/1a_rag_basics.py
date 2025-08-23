@@ -1,9 +1,8 @@
 import os
-
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # Define the directory containing the text file and the persistent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +20,7 @@ if not os.path.exists(persistent_directory):
         )
 
     # Read the text content from the file
-    loader = TextLoader(file_path)
+    loader = TextLoader(file_path, encoding='utf-8')  # or 'latin-1' if utf-8 fails
     documents = loader.load()
 
     # Split the document into chunks
@@ -35,9 +34,13 @@ if not os.path.exists(persistent_directory):
 
     # Create embeddings
     print("\n--- Creating embeddings ---")
-    embeddings = OpenAIEmbeddings(
-        model="text-embedding-3-small"
-    )  # Update to a valid embedding model if needed
+    #embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"local_files_only": True}
+    )
+    
+    
     print("\n--- Finished creating embeddings ---")
 
     # Create the vector store and persist it automatically
