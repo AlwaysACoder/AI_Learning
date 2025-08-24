@@ -24,7 +24,19 @@ if not os.path.exists(persistent_directory):
     documents = loader.load()
 
     # Split the document into chunks
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    # Recommended Chunk Size and Overlap for sentence-transformers/all-MiniLM-L6-v2
+    # Chunk Size: 256–384 tokens
+    # Chunk Overlap: 20%–25% of chunk size (usually 50–100 tokens)
+
+    text_splitter = CharacterTextSplitter(
+        separator=" ",           # Split on paragraph boundaries (or "\n" for line)
+        chunk_size=256,
+        chunk_overlap=64,
+        length_function=len         # Default is len(), which measures characters
+    )
+
+
+
     docs = text_splitter.split_documents(documents)
 
     # Display information about the split documents
@@ -34,7 +46,6 @@ if not os.path.exists(persistent_directory):
 
     # Create embeddings
     print("\n--- Creating embeddings ---")
-    #embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         model_kwargs={"local_files_only": True}

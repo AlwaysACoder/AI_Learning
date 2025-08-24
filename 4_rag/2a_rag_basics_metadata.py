@@ -3,7 +3,7 @@ import os
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # Define the directory containing the text files and the persistent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,15 +31,25 @@ if not os.path.exists(persistent_directory):
     documents = []
     for book_file in book_files:
         file_path = os.path.join(books_dir, book_file)
-        loader = TextLoader(file_path)
+        loader = TextLoader(file_path, encoding='utf-8')
         book_docs = loader.load()
         for doc in book_docs:
             # Add metadata to each document indicating its source
             doc.metadata = {"source": book_file}
             documents.append(doc)
 
-    # Split the documents into chunks
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    # Split the document into chunks
+    # Recommended Chunk Size and Overlap for sentence-transformers/all-MiniLM-L6-v2
+    # Chunk Size: 256–384 tokens
+    # Chunk Overlap: 20%–25% of chunk size (usually 50–100 tokens)
+
+    text_splitter = CharacterTextSplitter(
+        separator=" ",           # Split on paragraph boundaries (or "\n" for line)
+        chunk_size=256,
+        chunk_overlap=64,
+        length_function=len         # Default is len(), which measures characters
+    )
+
     docs = text_splitter.split_documents(documents)
 
     # Display information about the split documents
@@ -48,9 +58,11 @@ if not os.path.exists(persistent_directory):
 
     # Create embeddings
     print("\n--- Creating embeddings ---")
-    embeddings = OpenAIEmbeddings(
-        model="text-embedding-3-small"
-    )  # Update to a valid embedding model if needed
+    # Define the embedding model
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"local_files_only": True}
+    )
     print("\n--- Finished creating embeddings ---")
 
     # Create the vector store and persist it
