@@ -1,11 +1,15 @@
 import os
+from dotenv import load_dotenv
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
+load_dotenv()
+
 # Define the directory containing the text file and the persistent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
+model_location = os.getenv("EMBEDDING_MODEL_FILEPATH")
 file_path = os.path.join(current_dir, "books", "odyssey.txt")
 persistent_directory = os.path.join(current_dir, "db", "chroma_db")
 
@@ -46,11 +50,11 @@ if not os.path.exists(persistent_directory):
 
     # Create embeddings
     print("\n--- Creating embeddings ---")
+    # Define the embedding model
     embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_name=model_location,
         model_kwargs={"local_files_only": True}
     )
-    
     
     print("\n--- Finished creating embeddings ---")
 

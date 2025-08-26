@@ -1,12 +1,15 @@
 import os
-
+from dotenv import load_dotenv
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
+load_dotenv()
+
 # Define the directory containing the text files and the persistent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
+model_location = os.getenv("EMBEDDING_MODEL_FILEPATH")
 books_dir = os.path.join(current_dir, "books")
 db_dir = os.path.join(current_dir, "db")
 persistent_directory = os.path.join(db_dir, "chroma_db_with_metadata")
@@ -60,9 +63,10 @@ if not os.path.exists(persistent_directory):
     print("\n--- Creating embeddings ---")
     # Define the embedding model
     embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_name=model_location,
         model_kwargs={"local_files_only": True}
     )
+
     print("\n--- Finished creating embeddings ---")
 
     # Create the vector store and persist it

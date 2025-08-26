@@ -1,18 +1,22 @@
 import os
-
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
+load_dotenv()
+
 # Define the persistent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
+model_location = os.getenv("EMBEDDING_MODEL_FILEPATH")
 db_dir = os.path.join(current_dir, "db")
 persistent_directory = os.path.join(db_dir, "chroma_db_with_metadata")
 
 # Define the embedding model
 embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_name=model_location,
     model_kwargs={"local_files_only": True}
 )
+
 
 # Load the existing vector store with the embedding function
 db = Chroma(persist_directory=persistent_directory,

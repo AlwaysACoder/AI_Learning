@@ -1,15 +1,18 @@
 import os
-
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
+load_dotenv()
+
 # Define the persistent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
+model_location = os.getenv("EMBEDDING_MODEL_FILEPATH")
 persistent_directory = os.path.join(current_dir, "db", "chroma_db")
 
 # Define the embedding model
 embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_name=model_location,
     model_kwargs={"local_files_only": True}
 )
 

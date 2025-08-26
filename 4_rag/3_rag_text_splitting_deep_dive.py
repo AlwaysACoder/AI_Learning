@@ -1,5 +1,5 @@
 import os
-
+from dotenv import load_dotenv
 from langchain.text_splitter import (
     CharacterTextSplitter,
     RecursiveCharacterTextSplitter,
@@ -8,11 +8,14 @@ from langchain.text_splitter import (
     TokenTextSplitter,
 )
 from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+
+load_dotenv()
 
 # Define the directory containing the text file
 current_dir = os.path.dirname(os.path.abspath(__file__))
+model_location = os.getenv("EMBEDDING_MODEL_FILEPATH")
 file_path = os.path.join(current_dir, "books", "romeo_and_juliet.txt")
 db_dir = os.path.join(current_dir, "db")
 
@@ -23,14 +26,14 @@ if not os.path.exists(file_path):
     )
 
 # Read the text content from the file
-loader = TextLoader(file_path)
+loader = TextLoader(file_path, encoding='utf-8')
 documents = loader.load()
 
 # Define the embedding model
-embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small"
-)  # Update to a valid embedding model if needed
-
+embeddings = HuggingFaceEmbeddings(
+    model_name=model_location,
+    model_kwargs={"local_files_only": True}
+)
 
 # Function to create and persist vector store
 def create_vector_store(docs, store_name):
@@ -50,7 +53,12 @@ def create_vector_store(docs, store_name):
 # Splits text into chunks based on a specified number of characters.
 # Useful for consistent chunk sizes regardless of content structure.
 print("\n--- Using Character-based Splitting ---")
-char_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+char_splitter  = CharacterTextSplitter(
+    separator=" ",           # Split on paragraph boundaries (or "\n" for line)
+    chunk_size=256,
+    chunk_overlap=64,
+    length_function=len         # Default is len(), which measures characters
+)
 char_docs = char_splitter.split_documents(documents)
 create_vector_store(char_docs, "chroma_db_char")
 
@@ -58,7 +66,11 @@ create_vector_store(char_docs, "chroma_db_char")
 # Splits text into chunks based on sentences, ensuring chunks end at sentence boundaries.
 # Ideal for maintaining semantic coherence within chunks.
 print("\n--- Using Sentence-based Splitting ---")
-sent_splitter = SentenceTransformersTokenTextSplitter(chunk_size=1000)
+sent_splitter = SentenceTransformersTokenTextSplitter(
+    model_name = model_location,
+    chunk_size=350,       # slightly smaller for safety
+    chunk_overlap=50      # improves semantic continuity across chunks
+)
 sent_docs = sent_splitter.split_documents(documents)
 create_vector_store(sent_docs, "chroma_db_sent")
 
@@ -66,7 +78,10 @@ create_vector_store(sent_docs, "chroma_db_sent")
 # Splits text into chunks based on tokens (words or subwords), using tokenizers like GPT-2.
 # Useful for transformer models with strict token limits.
 print("\n--- Using Token-based Splitting ---")
-token_splitter = TokenTextSplitter(chunk_overlap=0, chunk_size=512)
+token_splitter = TokenTextSplitter(
+    chunk_size=500,       # Slightly under 512 for safety margin
+    chunk_overlap=64      # Good overlap to maintain context across chunks
+)
 token_docs = token_splitter.split_documents(documents)
 create_vector_store(token_docs, "chroma_db_token")
 
@@ -74,8 +89,14 @@ create_vector_store(token_docs, "chroma_db_token")
 # Attempts to split text at natural boundaries (sentences, paragraphs) within character limit.
 # Balances between maintaining coherence and adhering to character limits.
 print("\n--- Using Recursive Character-based Splitting ---")
+
 rec_char_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, chunk_overlap=100)
+    chunk_size=1000,          # More context per chunk
+    chunk_overlap=200,        # Enough overlap for smoother transitions
+    separators=["\n\n", "\n", ".", " ", ""]  # Typical recursive separators
+)
+
+
 rec_char_docs = rec_char_splitter.split_documents(documents)
 create_vector_store(rec_char_docs, "chroma_db_rec_char")
 
@@ -128,3 +149,4 @@ query_vector_store("chroma_db_sent", query)
 query_vector_store("chroma_db_token", query)
 query_vector_store("chroma_db_rec_char", query)
 query_vector_store("chroma_db_custom", query)
+
