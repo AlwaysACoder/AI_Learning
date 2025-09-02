@@ -1,20 +1,26 @@
 import os
 
 from dotenv import load_dotenv
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import OllamaLLM
 
 # Load environment variables from .env
 load_dotenv()
 
 # Define the persistent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
+model_location = os.getenv("EMBEDDING_MODEL_FILEPATH")
 persistent_directory = os.path.join(
     current_dir, "db", "chroma_db_with_metadata")
 
 # Define the embedding model
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+embeddings = HuggingFaceEmbeddings(
+    model_name=model_location,
+    model_kwargs={"local_files_only": True}
+)
+
 
 # Load the existing vector store with the embedding function
 db = Chroma(persist_directory=persistent_directory,
@@ -44,8 +50,8 @@ combined_input = (
     + "\n\nPlease provide an answer based only on the provided documents. If the answer is not found in the documents, respond with 'I'm not sure'."
 )
 
-# Create a ChatOpenAI model
-model = ChatOpenAI(model="gpt-4o")
+# Create a Mistral model
+model = OllamaLLM(model="mistral")
 
 # Define the messages for the model
 messages = [
@@ -58,7 +64,5 @@ result = model.invoke(messages)
 
 # Display the full result and content only
 print("\n--- Generated Response ---")
-# print("Full result:")
-# print(result)
-print("Content only:")
-print(result.content)
+print("Full result:")
+print(result)
