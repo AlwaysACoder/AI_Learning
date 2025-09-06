@@ -5,11 +5,11 @@ from langchain.agents import (
     create_react_agent,
 )
 from langchain_core.tools import Tool
-from langchain_openai import ChatOpenAI
+from langchain_ollama import OllamaLLM
+from langchain.prompts import PromptTemplate
 
 # Load environment variables from .env file
 load_dotenv()
-
 
 # Define a very simple tool function that returns the current time
 def get_current_time(*args, **kwargs):
@@ -33,12 +33,39 @@ tools = [
 # Pull the prompt template from the hub
 # ReAct = Reason and Action
 # https://smith.langchain.com/hub/hwchase17/react
-prompt = hub.pull("hwchase17/react")
+# prompt = hub.pull("hwchase17/react")
 
-# Initialize a ChatOpenAI model
-llm = ChatOpenAI(
-    model="gpt-4o", temperature=0
+# Define the template with placeholders
+template = """Answer the following questions as well you can. You have access to the following tools:
+
+{tools}
+
+Use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Begin!
+
+Question: {input}
+Thought:{agent_scratchpad}"""
+
+# Create the PromptTemplate object
+prompt = PromptTemplate(
+    input_variables=["tools", "tool_names","input","agent_scratchpad"],
+    template=template
 )
+
+# Create  model
+# llm = OllamaLLM(model="mistral", temperature=0)
+llm = OllamaLLM(model="llama3", temperature=0)
+# llm = OllamaLLM(model="gpt-oss", temperature=0)
 
 # Create the ReAct agent using the create_react_agent function
 agent = create_react_agent(
@@ -53,6 +80,7 @@ agent_executor = AgentExecutor.from_agent_and_tools(
     agent=agent,
     tools=tools,
     verbose=True,
+    handle_parsing_errors=True
 )
 
 # Run the agent with a test query
